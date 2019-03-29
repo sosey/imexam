@@ -18,11 +18,6 @@
  """
 
 import matplotlib.pyplot as plt
-# turn on interactive mode for plotting
-# so that plt.show becomes non-blocking
-if not plt.isinteractive():
-    plt.ion()
-
 import warnings
 import numpy as np
 import sys
@@ -66,6 +61,12 @@ except ImportError:
     print("photutils not installed, photometry functionality "
           "in imexam() not available")
     photutils_installed = False
+
+# turn on interactive mode for plotting
+# so that plt.show becomes non-blocking
+if not plt.isinteractive():
+    plt.ion()
+
 
 __all__ = ["Imexamine"]
 
@@ -952,7 +953,7 @@ class Imexamine:
         form: string
             The string name of the form of the fit to use
         genplot: bool
-            Generate the plot if True, else retfurn the fit data
+            Generate the plot if True, else retfurn the radius,flux data
 
         """
         pars = self.radial_profile_pars
@@ -1006,7 +1007,9 @@ class Imexamine:
             #  flipped from xpa
             data_chunk = data[yy - datasize:yy + datasize,
                               xx - datasize:xx + datasize]
-            amp, centerx, centery, sigmax, sigmay = self.gauss_center(xx, yy, data, delta=datasize)
+            amp, centerx, centery, sigmax, sigmay = self.gauss_center(xx, yy,
+                                                                      data,
+                                                                      delta=datasize)
 
         else:
             centery = y
@@ -1077,8 +1080,6 @@ class Imexamine:
             self.log.info(radius, flux)
 
         # Fit the functional form to the radial profile flux
-        # TODO: Ignore sky subtracted pixels that push flux
-        # below zero?
         if fitplot:
             fline = np.linspace(0, datasize, 100)  # finer sample
             # fit model to data

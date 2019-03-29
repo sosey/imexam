@@ -193,7 +193,8 @@ class ds9:
         self._current_slice = None
 
         # default starting socket type to inet
-        # users can change to local using environment variable
+        # users can change to local using the XPA_METHOD
+        # environment variable
         self._xpa_method = "inet"
         self._xpa_name = ""
 
@@ -291,7 +292,6 @@ class ds9:
         # check the current frame, if none exists, then don't continue
         frame = self.frame()
         if frame:
-
             if frame not in self._viewer:
                 self._viewer[frame] = dict()
 
@@ -475,7 +475,6 @@ class ds9:
         """
         try:
             if self._ds9_process:
-                # none means not yet terminated
                 if self._ds9_process.poll() is None:
                     self.set("exit")
                     if self._ds9_process in self._process_list:
@@ -565,7 +564,7 @@ class ds9:
         unique names or use the inet address you should be fine
 
         For unix only, we run ds9 with XPA_TMPDIR set to temporary directory
-        whose prefix start with /tmp/xpa (eg, /tmp/xpa_sf23f), them set
+        whose prefix start with /tmp/xpa (eg, /tmp/xpa_sf23f), then set
         os.environ["XPA_TMPDIR"] (which affects xpa set and/or get command
         from python) to /tmp/xpa.
         """
@@ -598,6 +597,7 @@ class ds9:
                 file_list = os.listdir(self._tmpd_name)
                 if ".IMT" in file_list:
                     break
+                print(wait_time)
                 time.sleep(0.5)
                 wait_time -= 0.5
 
@@ -653,13 +653,15 @@ class ds9:
         -----
         If you start a ds9 window from the shell and then connect
         to imexam, imexam will not have a reference for the process,
-        so this method ignores that state.
+        so this method ignores that state. poll returns none if the
+        process is still running
         """
         if self._ds9_process:
             ret = self._ds9_process.poll()
             if ret is not None:
                 raise RuntimeError("The ds9 process is externally killed.")
                 self._purge_local()
+
 
     def set(self, param, buf=None):
         """XPA set method to ds9 instance.
@@ -690,7 +692,10 @@ class ds9:
 
         """
         self._check_ds9_process()
-        return self.xpa.get(param)
+        try:
+            return self.xpa.get(param)
+        except XpaException:
+            raise XpaException("DS9 process not available")
 
     def readcursor(self):
         """Returns the image coordinate postion and key pressed.
@@ -962,6 +967,10 @@ class ds9:
             returned. The value of n is converted to a string before passing
             to the XPA
 
+        Returns
+        -------
+        Current frame number
+
         Examples
         --------
         frame(1)  sets the current frame to 1
@@ -973,13 +982,14 @@ class ds9:
 
         """
         frame = self.get("frame").strip()  # xpa returns '\n' for no frame
-
+        
         if frame:
-            if n:
+            if n is not None:
                 if "delete" in str(n):
                     if frame in self._viewer:
                         del self._viewer[frame]
                 self.set("frame {0:s}".format(str(n)))
+                return str(n)
             else:
                 try:
                     if len(frame) < 1:
@@ -1765,7 +1775,7 @@ class ds9:
 
     def zoomtofit(self):
         """Zoom to fit the image to the viewer."""
-        self.zoom("to fit")
+        self.zoom()
 
     def zoom(self, par="to fit"):
         """Zoom using the specified command.
@@ -1785,6 +1795,7 @@ class ds9:
         Examples
         --------
         zoom('0.1')
+        zoom('to def view')
 
         """
         try:

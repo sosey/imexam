@@ -190,6 +190,7 @@ def fit_gauss_1d(radius, flux, sigma_factor=0, center_at=None, weighted=False):
     model = (models.Gaussian1D(amplitude=flux.max() - flux.min(),
                                mean=delta, stddev=1.) +
              models.Polynomial1D(c0=flux.min(), degree=0))
+    model.mean_0.fixed = True
 
     with warnings.catch_warnings():
         # Ignore model linearity warning from the fitter
